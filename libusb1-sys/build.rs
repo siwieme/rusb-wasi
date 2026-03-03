@@ -148,7 +148,9 @@ fn make_source() {
         base_config.file(libusb_source.join("libusb/os/linux_usbfs.c"));
     }
 
-    if std::env::var("CARGO_CFG_TARGET_FAMILY") == Ok("unix".into()) {
+    if std::env::var("CARGO_CFG_TARGET_FAMILY") == Ok("unix".into())
+        && std::env::var("CARGO_CFG_TARGET_OS") != Ok("wasi".into())
+    {
         base_config.define("HAVE_SYS_TIME_H", Some("1"));
         base_config.define("HAVE_NFDS_T", Some("1"));
         base_config.define("PLATFORM_POSIX", Some("1"));
@@ -190,6 +192,22 @@ fn make_source() {
         base_config.define("DEFAULT_VISIBILITY", Some(""));
         base_config.define("PLATFORM_WINDOWS", Some("1"));
         link("user32", false);
+    }
+
+    if std::env::var("CARGO_CFG_TARGET_OS") == Ok("wasi".into()) {
+        base_config.define("OS_WASI", Some("1"));
+        base_config.define("PLATFORM_POSIX", Some("1"));
+        base_config.define("HAVE_CLOCK_GETTIME", Some("1"));
+        base_config.define("HAVE_SYS_TIME_H", Some("1"));
+        base_config.define("HAVE_NFDS_T", Some("1"));
+        base_config.define(
+            "DEFAULT_VISIBILITY",
+            Some("__attribute__((visibility(\"default\")))"),
+        );
+        base_config.file(libusb_source.join("libusb/os/wasi_usb.c"));
+        base_config.file(libusb_source.join("libusb/os/cguest.c"));
+        // base_config.file(libusb_source.join("libusb/os/events_posix.c"));
+        base_config.file(libusb_source.join("libusb/os/threads_posix.c"));
     }
 
     base_config.file(libusb_source.join("libusb/core.c"));
